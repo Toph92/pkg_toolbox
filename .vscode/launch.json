@@ -5,21 +5,23 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "pkg_toolbox",
+            "name": "dialogs",
+            "type": "dart",
             "request": "launch",
-            "type": "dart"
+            "program": "examples/dialogs/lib/main.dart"
         },
         {
-            "name": "pkg_toolbox (profile mode)",
-            "request": "launch",
+            "name": "flight_calendar",
             "type": "dart",
-            "flutterMode": "profile"
-        },
+            "request": "launch",
+            "program": "examples/flight_calendar/lib/main.dart"
+        }
+        ,
         {
-            "name": "pkg_toolbox (release mode)",
-            "request": "launch",
+            "name": "expansion_menu",
             "type": "dart",
-            "flutterMode": "release"
+            "request": "launch",
+            "program": "examples/expansion_menu/lib/main.dart"
         }
     ]
 }

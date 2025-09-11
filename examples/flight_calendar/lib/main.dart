@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pkg_toolbox/flight_calendar.dart';
+import 'package:pkg_toolbox/toolbox.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 void main() async {

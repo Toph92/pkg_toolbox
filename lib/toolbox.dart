@@ -5,3 +5,5 @@ export 'utils.dart'; // can be used without Flutter library
 export 'titleborderbox.dart';
 export 'widgets.dart';
 export 'dialogs.dart';
+export 'src/flight_calendar.dart';
+export 'src/expansion_menu.dart';
