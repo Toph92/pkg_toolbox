@@ -32,7 +32,23 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     menuController = AppMenuController({
+      'header': ItemController(
+        type: MenuType.header,
+        label: 'header',
+        title: 'Header',
+        content: Container(
+          height: 200,
+          color: Colors.blueGrey,
+          child: const Center(
+            child: Text(
+              'Mon Header Fixe',
+              style: TextStyle(color: Colors.white, fontSize: 20),
+            ),
+          ),
+        ),
+      ),
       'home': ItemController(
+        type: MenuType.section,
         label: 'home',
         title: 'Accueil',
         icon: Icons.home,
@@ -43,6 +59,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
       'settings': ItemController(
+        type: MenuType.section,
         label: 'settings',
         title: 'Paramètres',
         icon: Icons.settings,
@@ -56,11 +73,13 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
       'profile': ItemController(
+        type: MenuType.section,
+
         label: 'profile',
         title: 'Profil',
         icon: Icons.person,
         content: Container(
-          height: 200,
+          height: 400,
           color: Colors.greenAccent,
           child: Center(child: Text('Informations du profil utilisateur')),
         ),
@@ -78,53 +97,42 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {});
   }
 
-  Widget buildSection(ItemController item) {
-    if (!item.visible) return const SizedBox.shrink();
-    return MenuExpansionSection(
-      title: item.title,
-      icon: item.icon ?? Icons.menu,
-      isExpanded: item.expanded,
-      controller: item.expansionController,
-      enabled: item.enabled,
-      onExpansionChanged: (expanded) {
-        if (!item.enabled) return;
-        setState(() => item.expanded = expanded);
-      },
-      content: item.content,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final bool isSmallScreen = width < 1000;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Expansion Menu Example'),
-        actions: [
-          IconButton(icon: const Icon(Icons.expand_more), onPressed: expandAll),
-          IconButton(
-            icon: const Icon(Icons.expand_less),
-            onPressed: collapseAll,
-          ),
-        ],
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(color: Colors.blue),
-              child: Text(
-                'Menu',
-                style: TextStyle(color: Colors.white, fontSize: 24),
-              ),
+      appBar: AppBar(title: const Text('Expansion Menu Example')),
+      drawer: isSmallScreen
+          ? Drawer(child: MenuWidget(controller: menuController))
+          : null,
+      body: isSmallScreen
+          ? const Center(child: Text('Contenu principal de l\'app'))
+          : Row(
+              children: [
+                SizedBox(
+                  width: 300,
+                  child: Material(
+                    elevation: 0,
+                    child: MenuWidget(controller: menuController),
+                  ),
+                ),
+                Container(
+                  width: 1,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.grey.shade700, Colors.grey.shade300],
+                    ),
+                  ),
+                ),
+                const Expanded(
+                  child: Center(child: Text('Contenu principal de l\'app')),
+                ),
+              ],
             ),
-            buildSection(menuController.menuEntries['home']!),
-            buildSection(menuController.menuEntries['settings']!),
-            buildSection(menuController.menuEntries['profile']!),
-          ],
-        ),
-      ),
-      body: const Center(child: Text('Contenu principal de l\'app')),
     );
   }
 }

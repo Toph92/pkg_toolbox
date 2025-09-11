@@ -1,0 +1,196 @@
+import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'main_menu.dart';
+import 'flight_calendar.dart';
+import 'pkg/expansion_menu.dart';
+
+void main() async {
+  await initializeDateFormatting('fr_FR');
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  // This widget is the root of your application.
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Flutter Demo',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+      ),
+      home: const MyHomePage(title: 'Menu Expansion'),
+    );
+  }
+}
+
+class MyHomePage extends StatefulWidget {
+  const MyHomePage({super.key, required this.title});
+
+  // This widget is the home page of your application. It is stateful, meaning
+  // that it has a State object (defined below) that contains fields that affect
+  // how it looks.
+
+  // This class is the configuration for the state. It holds the values (in this
+  // case the title) provided by the parent (in this case the App widget) and
+  // used by the build method of the State. Fields in a Widget subclass are
+  // always marked "final".
+
+  final String title;
+
+  @override
+  State<MyHomePage> createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  // Contrôleur partagé pour conserver l'état du menu entre drawer et panneau latéral
+  late final AppMenuController _menuController;
+
+  @override
+  void dispose() {
+    flightDates.removeListener(onUpdateDates);
+    super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    initMenu();
+    _menuController = AppMenuController(menuEntries);
+    flightDates.addListener(onUpdateDates);
+  }
+
+  void onUpdateDates() {
+    _refresh();
+    print("Dates updated ${flightDates.selectedDate}");
+  }
+
+  void _refresh() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    double screenWidth = MediaQuery.of(context).size.width;
+    bool isSmallScreen = screenWidth < 1000;
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: Text(widget.title),
+      ),
+      drawer: isSmallScreen
+          ? Drawer(child: MenuWidget(controller: _menuController))
+          : null,
+      body: isSmallScreen
+          ? Center(child: Text('Écran principal vide'))
+          : Row(
+              children: [
+                SizedBox(
+                  width: 300, // Largeur fixe pour le menu
+                  child: Material(
+                    elevation: 0,
+                    child: MenuWidget(controller: _menuController),
+                  ),
+                ),
+                Container(
+                  width: 1,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.grey.shade800, Colors.grey.shade300],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
+                ),
+                Expanded(child: Center(child: Text('Écran principal vide'))),
+              ],
+            ),
+    );
+  }
+}
+
+FlightDates flightDates = FlightDates([
+  FlightDay(2024, 6, 1),
+  FlightDay(2024, 6, 2),
+  FlightDay(2024, 6, 3),
+  FlightDay(2024, 6, 4),
+  FlightDay(2024, 6, 5),
+  FlightDay(2024, 6, 6),
+  FlightDay(2024, 6, 7),
+  FlightDay(2024, 6, 8),
+  FlightDay(2024, 6, 9),
+  FlightDay(2024, 6, 10, nbFlights: 2),
+  FlightDay(2024, 6, 11),
+  FlightDay(2024, 6, 12),
+  FlightDay(2024, 6, 13),
+  FlightDay(2024, 6, 14),
+  FlightDay(2024, 6, 15),
+  FlightDay(2024, 6, 16),
+  FlightDay(2024, 6, 17),
+  FlightDay(2024, 6, 18),
+  FlightDay(2024, 6, 19),
+  FlightDay(2024, 6, 20),
+  FlightDay(2024, 6, 21),
+  FlightDay(2024, 6, 22),
+  FlightDay(2024, 6, 23),
+  FlightDay(2024, 6, 24),
+  FlightDay(2024, 6, 25),
+  FlightDay(2024, 6, 26),
+  FlightDay(2024, 6, 27),
+  FlightDay(2024, 6, 28),
+  FlightDay(2024, 6, 29),
+  FlightDay(2024, 6, 30),
+  FlightDay(2024, 7, 1),
+  FlightDay(2024, 9, 9),
+  FlightDay(2024, 7, 2),
+  FlightDay(2024, 7, 3),
+  FlightDay(2023, 5, 1),
+  FlightDay(2023, 5, 8),
+])..selectedDate = FlightDay(2024, 6, 7);
+
+Map<String, ItemController> menuEntries = {};
+
+void initMenu() {
+  menuEntries['dates'] = ItemController(
+    label: 'dates',
+    title: 'Dates',
+    icon: Icons.calendar_month,
+    // Le contenu sera injecté depuis MenuWidget pour coller aux callbacks/état
+    content: FlightCalendarWidget(
+      flightDates: flightDates,
+      //onDaySelected: onDaySelected,
+    ),
+  );
+  menuEntries['flights'] = ItemController(
+    label: 'flights',
+    title: 'Vols',
+    icon: Icons.connecting_airports,
+    content: const Center(
+      child: SizedBox(height: 200, child: Text('Menu Vols')),
+    ),
+  );
+  menuEntries['flightDetail'] = ItemController(
+    label: 'flightDetail',
+    title: 'Détail vol',
+    icon: Icons.flight,
+    content: const Center(
+      child: SizedBox(height: 200, child: Text('Détail vol')),
+    ),
+  );
+  menuEntries['tools'] = ItemController(
+    label: 'tools',
+    title: 'Mesures',
+    icon: Icons.design_services,
+    content: const Center(child: SizedBox(height: 200, child: Text('Tools'))),
+  );
+  menuEntries['help'] = ItemController(
+    label: 'help',
+    title: 'Aide',
+    icon: Icons.help,
+    content: const Center(child: SizedBox(height: 200, child: Text('Aide'))),
+  );
+}
+
+// (initState déplacé dans _MyHomePageState)

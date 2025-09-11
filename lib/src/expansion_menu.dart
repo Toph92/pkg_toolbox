@@ -126,7 +126,13 @@ class _MenuExpansionSectionState extends State<MenuExpansionSection> {
   }
 }
 
+/// Type d'entrée du menu :
+/// - header : widget fixe en haut, non scrollé, non extensible
+/// - section : section extensible
+enum MenuType { header, section }
+
 class ItemController {
+  MenuType type;
   final String label;
   bool expanded;
   bool enabled;
@@ -137,6 +143,7 @@ class ItemController {
   Widget content;
 
   ItemController({
+    required this.type,
     required this.label,
     required this.title,
     required this.content,
@@ -148,6 +155,9 @@ class ItemController {
 
   void expand() => expanded = true;
   void collapse() => expanded = false;
+
+  bool get isHeader => type == MenuType.header;
+  bool get isSection => type == MenuType.section;
 }
 
 // Contrôleur externe pour conserver l'état du menu entre plusieurs instances
@@ -197,6 +207,10 @@ mixin MenuWidgetMixin<T extends StatefulWidget> on State<T> {
 
   Widget buildSection(ItemController item /*  {Widget? content} */) {
     if (!item.visible) return const SizedBox.shrink();
+    if (item.isHeader) {
+      // Un header est rendu tel quel, sans logique d'expansion.
+      return item.content;
+    }
     return MenuExpansionSection(
       title: item.title,
       icon: item.icon ?? Icons.menu,
@@ -213,3 +227,146 @@ mixin MenuWidgetMixin<T extends StatefulWidget> on State<T> {
 }
 
 //*********************************************************************** */
+
+/// Widget complet prêt à l'emploi qui gère :
+/// - un header fixe (ItemController avec type = header)
+/// - une liste scrollable de sections expansion
+/// Vous pouvez déclarer plusieurs headers : ils seront empilés dans l'ordre
+/// de déclaration (Map insertion order).
+class MenuWidget extends StatefulWidget {
+  final AppMenuController controller;
+  final EdgeInsetsGeometry sectionsPadding;
+  final ScrollController? scrollController;
+  final bool showActionsBar;
+  final double actionsBarHeight;
+  final Color? actionsBarColor;
+  final bool showShadowOverlay;
+  final double shadowHeight;
+  final List<Widget> Function(
+    BuildContext context,
+    bool allCollapsed,
+    bool allExpanded,
+    VoidCallback onCollapseAll,
+    VoidCallback onExpandAll,
+  )?
+  customActionsBuilder;
+
+  const MenuWidget({
+    super.key,
+    required this.controller,
+    this.sectionsPadding = EdgeInsets.zero,
+    this.scrollController,
+    this.showActionsBar = true,
+    this.actionsBarHeight = 40,
+    this.actionsBarColor,
+    this.showShadowOverlay = true,
+    this.shadowHeight = 10,
+    this.customActionsBuilder,
+  });
+
+  @override
+  State<MenuWidget> createState() => _MenuWidgetState();
+}
+
+class _MenuWidgetState extends State<MenuWidget>
+    with MenuWidgetMixin<MenuWidget> {
+  @override
+  void initState() {
+    super.initState();
+    menuController = widget.controller;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final headers = items.values
+        .where((e) => e.isHeader && e.visible)
+        .map(
+          buildSection,
+        ) // buildSection retourne directement content pour header
+        .toList();
+    final sections = items.values
+        .where((e) => e.isSection && e.visible)
+        .map(buildSection)
+        .toList();
+
+    // États globaux pour barre d'actions
+    final visibleSections = items.values.where(
+      (e) => e.isSection && e.visible && e.enabled,
+    );
+    final bool allCollapsed =
+        visibleSections.isEmpty || visibleSections.every((e) => !e.expanded);
+    final bool allExpanded =
+        visibleSections.isNotEmpty && visibleSections.every((e) => e.expanded);
+
+    Widget? actionsBar;
+    if (widget.showActionsBar) {
+      final actions = widget.customActionsBuilder != null
+          ? widget.customActionsBuilder!(
+              context,
+              allCollapsed,
+              allExpanded,
+              collapseAll,
+              expandAll,
+            )
+          : <Widget>[
+              IconButton.filled(
+                tooltip: 'Réduire tout',
+                onPressed: allCollapsed ? null : collapseAll,
+                icon: const Icon(Symbols.collapse_all, size: 18),
+                padding: const EdgeInsets.all(6),
+                constraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+              ),
+              const SizedBox(width: 6),
+              IconButton.filled(
+                tooltip: 'Tout développer',
+                onPressed: allExpanded ? null : expandAll,
+                icon: const Icon(Symbols.expand_all, size: 18),
+                padding: const EdgeInsets.all(6),
+                constraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+              ),
+            ];
+      actionsBar = Container(
+        height: widget.actionsBarHeight,
+        color: widget.actionsBarColor ?? Colors.grey.shade300,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Row(children: actions),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (headers.isNotEmpty)
+          ...headers.map((w) => Material(elevation: 2, child: w)),
+        if (actionsBar != null) Material(elevation: 2, child: actionsBar),
+        Expanded(
+          child: Stack(
+            children: [
+              ListView(
+                controller: widget.scrollController,
+                padding: widget.sectionsPadding,
+                children: sections,
+              ),
+              if (widget.showShadowOverlay)
+                IgnorePointer(
+                  child: Container(
+                    height: widget.shadowHeight,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withValues(alpha: 0.5),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
