@@ -28,12 +28,20 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   late final AppMenuController menuController;
 
+  void _refresh() {
+    if (!mounted) return;
+    setState(() {
+      // Simulate a refresh action
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     menuController = AppMenuController({
       'header': ItemController(
         type: MenuType.header,
+        expanded: true,
         label: 'header',
         title: 'Header',
         content: Container(
@@ -55,7 +63,22 @@ class _MyHomePageState extends State<MyHomePage> {
         content: Container(
           color: Colors.amber,
           height: 100,
-          child: Center(child: Text('Contenu de la section Accueil')),
+          child: Row(
+            children: [
+              IconButton(
+                tooltip: "refresh",
+                hoverColor: Colors.yellow,
+                iconSize: 32,
+                splashRadius: 28,
+                onPressed: () async {
+                  menuController.menuEntries['settings']!.expanded =
+                      !menuController.menuEntries['settings']!.expanded;
+                  _refresh();
+                },
+                icon: const Icon(Icons.refresh),
+              ),
+            ],
+          ),
         ),
       ),
       'settings': ItemController(

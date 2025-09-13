@@ -162,7 +162,7 @@ class ItemController {
 
 // Contrôleur externe pour conserver l'état du menu entre plusieurs instances
 // de MenuWidget (ex: drawer vs panneau latéral).
-class AppMenuController {
+class AppMenuController extends ChangeNotifier {
   final Map<String, ItemController> menuEntries;
 
   AppMenuController(this.menuEntries);
