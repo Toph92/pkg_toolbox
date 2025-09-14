@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:pkg_toolbox/toolbox.dart';
 
+// Centralisation des labels pour éviter les fautes de frappe
+class MainMenuIds extends MenuIds {
+  static const header = 'header';
+  static const home = 'home';
+  static const settings = 'settings';
+  static const profile = 'profile';
+}
+
 void main() {
   runApp(const MyApp());
 }
@@ -28,21 +36,63 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   late final AppMenuController menuController;
 
-  void _refresh() {
-    if (!mounted) return;
-    setState(() {
-      // Simulate a refresh action
-    });
+  Widget _homeContent() {
+    return Container(
+      color: Colors.amber,
+      height: 100,
+      child: Row(
+        children: [
+          IconButton(
+            tooltip: 'Expand/Collapse settings',
+            hoverColor: Colors.yellow,
+            iconSize: 32,
+            splashRadius: 28,
+            onPressed: () {
+              menuController.switchExpansion(MainMenuIds.settings);
+            },
+            icon: AnimatedBuilder(
+              animation: menuController,
+              builder: (_, __) {
+                final entry = menuController.menuEntries[MainMenuIds.settings];
+                final expanded = entry?.expanded == true;
+                return Icon(
+                  expanded ? Icons.arrow_downward : Icons.arrow_upward,
+                );
+              },
+            ),
+          ),
+          IconButton(
+            tooltip: 'Show/hide settings',
+            hoverColor: Colors.yellow,
+            iconSize: 32,
+            splashRadius: 28,
+            onPressed: () {
+              menuController.switchVisibility(MainMenuIds.settings);
+            },
+            icon: AnimatedBuilder(
+              animation: menuController,
+              builder: (_, __) {
+                final entry = menuController.menuEntries[MainMenuIds.settings];
+                final visible = entry?.visible ?? false;
+                return Icon(visible ? Icons.visibility_off : Icons.visibility);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   void initState() {
     super.initState();
-    menuController = AppMenuController({
-      'header': ItemController(
+    // Étape 1 : créer d'abord le controller (plus de référence avant affectation)
+    menuController = AppMenuController();
+    // Étape 2 : enregistrer les items qui peuvent désormais utiliser menuController
+    menuController.registerAll([
+      ItemController(
         type: MenuType.header,
-        expanded: true,
-        label: 'header',
+        label: MainMenuIds.header,
         title: 'Header',
         content: Container(
           height: 200,
@@ -55,35 +105,17 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ),
       ),
-      'home': ItemController(
+      ItemController(
         type: MenuType.section,
-        label: 'home',
+        expanded: true,
+        label: MainMenuIds.home,
         title: 'Accueil',
         icon: Icons.home,
-        content: Container(
-          color: Colors.amber,
-          height: 100,
-          child: Row(
-            children: [
-              IconButton(
-                tooltip: "refresh",
-                hoverColor: Colors.yellow,
-                iconSize: 32,
-                splashRadius: 28,
-                onPressed: () async {
-                  menuController.menuEntries['settings']!.expanded =
-                      !menuController.menuEntries['settings']!.expanded;
-                  _refresh();
-                },
-                icon: const Icon(Icons.refresh),
-              ),
-            ],
-          ),
-        ),
+        content: _homeContent(),
       ),
-      'settings': ItemController(
+      ItemController(
         type: MenuType.section,
-        label: 'settings',
+        label: MainMenuIds.settings,
         title: 'Paramètres',
         icon: Icons.settings,
         content: Column(
@@ -95,19 +127,20 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         ),
       ),
-      'profile': ItemController(
+      ItemController(
         type: MenuType.section,
-
-        label: 'profile',
+        label: MainMenuIds.profile,
         title: 'Profil',
         icon: Icons.person,
         content: Container(
           height: 400,
           color: Colors.greenAccent,
-          child: Center(child: Text('Informations du profil utilisateur')),
+          child: const Center(
+            child: Text('Informations du profil utilisateur'),
+          ),
         ),
       ),
-    });
+    ]);
   }
 
   void collapseAll() {

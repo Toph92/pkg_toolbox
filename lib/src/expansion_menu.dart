@@ -13,7 +13,7 @@ class MenuExpansionSection extends StatefulWidget {
   final Color collapsedBackgroundColor;
   final Color headerExpandedForegroundColor;
   final Color contentBackgroundColor;
-  final EdgeInsetsGeometry contentPadding;
+  //final EdgeInsetsGeometry contentPadding;
   final bool enabled;
   final Color? disabledColor;
 
@@ -34,7 +34,7 @@ class MenuExpansionSection extends StatefulWidget {
     ), // gris
     this.headerExpandedForegroundColor = Colors.blue,
     this.contentBackgroundColor = Colors.white,
-    this.contentPadding = const EdgeInsets.only(left: 4),
+    //this.contentPadding = const EdgeInsets.only(left: 4),
     this.enabled = true,
     this.disabledColor,
   });
@@ -95,7 +95,7 @@ class _MenuExpansionSectionState extends State<MenuExpansionSection> {
             ? [
                 Container(
                   width: double.infinity,
-                  padding: widget.contentPadding,
+                  //padding: widget.contentPadding,
                   color: widget.contentBackgroundColor,
                   child: widget.content,
                 ),
@@ -163,9 +163,30 @@ class ItemController {
 // Contrôleur externe pour conserver l'état du menu entre plusieurs instances
 // de MenuWidget (ex: drawer vs panneau latéral).
 class AppMenuController extends ChangeNotifier {
-  final Map<String, ItemController> menuEntries;
+  final Map<String, ItemController> menuEntries = {};
+  // Mémorise l'état d'expansion précédent lors d'un hide()
+  final Map<String, bool> _rememberedExpanded = {};
 
-  AppMenuController(this.menuEntries);
+  AppMenuController();
+
+  void register(ItemController item) {
+    menuEntries[item.label] = item;
+    // Synchronise l'état visuel initial si marqué expanded
+    if (item.expanded && item.isSection) {
+      item.expansionController.expand();
+    }
+    notifyListeners();
+  }
+
+  void registerAll(Iterable<ItemController> items) {
+    for (final i in items) {
+      menuEntries[i.label] = i;
+      if (i.expanded && i.isSection) {
+        i.expansionController.expand();
+      }
+    }
+    notifyListeners();
+  }
 
   void expandAll() {
     for (final entry in menuEntries.values) {
@@ -182,6 +203,98 @@ class AppMenuController extends ChangeNotifier {
         entry.collapse();
         entry.expansionController.collapse();
       }
+    }
+  }
+
+  /// Bascule (expand/collapse) une section par son label.
+  /// - Met à jour le booléen [expanded]
+  /// - Appelle le controller d'expansion pour refléter visuellement
+  /// - Notifie les listeners
+  void switchExpansion(String label) {
+    final entry = menuEntries[label];
+    if (entry == null) return; // label inconnu
+    if (!entry.visible || !entry.enabled || entry.isHeader) {
+      return; // rien à faire
+    }
+
+    entry.expanded = !entry.expanded;
+    if (entry.expanded) {
+      entry.expansionController.expand();
+    } else {
+      entry.expansionController.collapse();
+    }
+    notifyListeners();
+  }
+
+  /// Force l'expansion d'une section (si possible)
+  void expandOne(String label) {
+    final entry = menuEntries[label];
+    if (entry == null) return;
+    if (!entry.visible || !entry.enabled || entry.isHeader) return;
+    entry.expanded = true;
+    entry.expansionController.expand();
+    notifyListeners();
+  }
+
+  /// Force la réduction d'une section (si possible)
+  void collapseOne(String label) {
+    final entry = menuEntries[label];
+    if (entry == null) return;
+    if (!entry.visible || !entry.enabled || entry.isHeader) return;
+    entry.expanded = false;
+    entry.expansionController.collapse();
+    notifyListeners();
+  }
+
+  /// Rend visible un item sans restauration d'état (interne)
+  void showRaw(String label) {
+    final entry = menuEntries[label];
+    if (entry == null) return;
+    if (entry.visible) return;
+    entry.visible = true;
+    notifyListeners();
+  }
+
+  /// Cache un item. Si c'est une section étendue elle est d'abord repliée.
+  void hide(String label, {bool rememberState = true}) {
+    final entry = menuEntries[label];
+    if (entry == null) return;
+    if (!entry.visible) return;
+    if (rememberState && entry.isSection) {
+      _rememberedExpanded[label] = entry.expanded;
+    }
+    if (entry.isSection && entry.expanded) {
+      entry.expanded = false;
+      entry.expansionController.collapse();
+    }
+    entry.visible = false;
+    notifyListeners();
+  }
+
+  /// Rend visible un item et restaure éventuellement son état d'expansion précédent
+  void show(String label, {bool restoreState = true}) {
+    final entry = menuEntries[label];
+    if (entry == null) return;
+    if (entry.visible) return;
+    entry.visible = true;
+    if (restoreState && entry.isSection) {
+      final wasExpanded = _rememberedExpanded[label];
+      if (wasExpanded == true) {
+        entry.expanded = true;
+        entry.expansionController.expand();
+      }
+    }
+    notifyListeners();
+  }
+
+  /// Bascule visibilité (restaure l'état d'expansion précédent si ré-affiché)
+  void switchVisibility(String label) {
+    final entry = menuEntries[label];
+    if (entry == null) return;
+    if (entry.visible) {
+      hide(label, rememberState: true);
+    } else {
+      show(label, restoreState: true);
     }
   }
 }
@@ -221,7 +334,7 @@ mixin MenuWidgetMixin<T extends StatefulWidget> on State<T> {
         if (!item.enabled) return;
         setState(() => item.expanded = expanded);
       },
-      content: /* content ??  */ item.content,
+      content: item.content,
     );
   }
 }
@@ -274,6 +387,13 @@ class _MenuWidgetState extends State<MenuWidget>
   void initState() {
     super.initState();
     menuController = widget.controller;
+    menuController.addListener(_refresh);
+  }
+
+  @override
+  void dispose() {
+    menuController.removeListener(_refresh);
+    super.dispose();
   }
 
   @override
@@ -370,3 +490,5 @@ class _MenuWidgetState extends State<MenuWidget>
     );
   }
 }
+
+class MenuIds {}
