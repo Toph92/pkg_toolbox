@@ -528,6 +528,7 @@ class MiniIconButton extends StatefulWidget {
   final VoidCallback onPressed;
   final Color? normalColor;
   final Color? hoverColor;
+  final String? tooltip;
 
   const MiniIconButton({
     super.key,
@@ -537,6 +538,7 @@ class MiniIconButton extends StatefulWidget {
     required this.onPressed,
     this.normalColor,
     this.hoverColor,
+    this.tooltip,
   });
 
   @override
@@ -548,24 +550,29 @@ class _MiniIconButtonState extends State<MiniIconButton> {
 
   @override
   Widget build(BuildContext context) {
+    final iconWidget = Icon(
+      _isHovered && widget.hoverIcon != null ? widget.hoverIcon! : widget.icon,
+      size: widget.size,
+      color: _isHovered
+          ? (widget.hoverColor ?? Colors.yellow)
+          : (widget.normalColor ?? Colors.blueGrey.shade700),
+    );
+
     return SizedBox(
       width: widget.size,
       height: widget.size,
       child: MouseRegion(
         onEnter: (_) => setState(() => _isHovered = true),
         onExit: (_) => setState(() => _isHovered = false),
-        child: GestureDetector(
-          onTap: widget.onPressed,
-          child: Icon(
-            _isHovered && widget.hoverIcon != null
-                ? widget.hoverIcon!
-                : widget.icon,
-            size: widget.size,
-            color: _isHovered
-                ? (widget.hoverColor ?? Colors.yellow)
-                : (widget.normalColor ?? Colors.blueGrey.shade700),
-          ),
-        ),
+        child: widget.tooltip != null
+            ? Tooltip(
+                message: widget.tooltip!,
+                child: GestureDetector(
+                  onTap: widget.onPressed,
+                  child: iconWidget,
+                ),
+              )
+            : GestureDetector(onTap: widget.onPressed, child: iconWidget),
       ),
     );
   }

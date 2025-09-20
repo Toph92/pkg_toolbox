@@ -133,6 +133,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   icon: Icons.build_circle_outlined,
                   hoverIcon: Icons.build_circle,
                   size: 32,
+                  tooltip: 'Manage settings',
                   onPressed: () {
                     menuController.switchExpansion(MainMenuIds.settings);
                   },
