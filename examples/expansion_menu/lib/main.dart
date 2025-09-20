@@ -117,6 +117,38 @@ class _MyHomePageState extends State<MyHomePage> {
         type: MenuType.section,
         label: MainMenuIds.settings,
         title: 'Paramètres',
+        header: AnimatedBuilder(
+          animation: menuController,
+          builder: (_, __) {
+            final entry = menuController.menuEntries[MainMenuIds.settings];
+            final expanded = entry?.expanded ?? false;
+
+            // Ne rien afficher si pas expanded
+            if (!expanded) {
+              return const SizedBox(width: 32, height: 32);
+            }
+            return Row(
+              children: [
+                MiniIconButton(
+                  icon: Icons.build_circle_outlined,
+                  hoverIcon: Icons.build_circle,
+                  size: 32,
+                  onPressed: () {
+                    menuController.switchExpansion(MainMenuIds.settings);
+                  },
+                ),
+                MiniIconButton(
+                  icon: Icons.check_box_outlined,
+                  hoverIcon: Icons.check_box_rounded,
+                  size: 32,
+                  onPressed: () {
+                    print("Settings action 2");
+                  },
+                ),
+              ],
+            );
+          },
+        ),
         icon: Icons.settings,
         content: Column(
           children: [

@@ -9,6 +9,7 @@ class MenuExpansionSection extends StatefulWidget {
   final ExpansibleController controller;
   final ValueChanged<bool> onExpansionChanged;
   final Widget content;
+  final Widget? header;
   final Color headerExpandedBackgroundColor;
   final Color collapsedBackgroundColor;
   final Color headerExpandedForegroundColor;
@@ -37,6 +38,7 @@ class MenuExpansionSection extends StatefulWidget {
     //this.contentPadding = const EdgeInsets.only(left: 4),
     this.enabled = true,
     this.disabledColor,
+    this.header,
   });
 
   @override
@@ -78,9 +80,8 @@ class _MenuExpansionSectionState extends State<MenuExpansionSection> {
                     ? widget.headerExpandedForegroundColor
                     : Colors.blueGrey.shade700),
         ),
-        title: Text(
-          widget.title,
-          style: TextStyle(
+        title: () {
+          final textStyle = TextStyle(
             fontWeight: widget.enabled && expanded
                 ? FontWeight.bold
                 : FontWeight.normal,
@@ -89,8 +90,18 @@ class _MenuExpansionSectionState extends State<MenuExpansionSection> {
                 : (expanded
                       ? widget.headerExpandedForegroundColor
                       : Colors.blue),
-          ),
-        ),
+          );
+
+          return widget.header != null
+              ? Row(
+                  children: [
+                    Text(widget.title, style: textStyle),
+                    const SizedBox(width: 8),
+                    widget.header!,
+                  ],
+                )
+              : Text(widget.title, style: textStyle);
+        }(),
         children: widget.enabled
             ? [
                 Container(
@@ -141,6 +152,7 @@ class ItemController {
   final IconData? icon;
   final ExpansibleController expansionController = ExpansibleController();
   Widget content;
+  Widget? header;
 
   ItemController({
     required this.type,
@@ -151,6 +163,7 @@ class ItemController {
     this.expanded = false,
     this.enabled = true,
     this.visible = true,
+    this.header,
   });
 
   void expand() => expanded = true;
@@ -297,6 +310,20 @@ class AppMenuController extends ChangeNotifier {
       show(label, restoreState: true);
     }
   }
+
+  /// Met à jour l'état d'expansion d'une section et notifie les listeners
+  void updateExpandedState(String label, bool expanded) {
+    final entry = menuEntries[label];
+    if (entry == null) return;
+    if (!entry.visible || !entry.enabled || entry.isHeader) return;
+    entry.expanded = expanded;
+    if (expanded) {
+      entry.expansionController.expand();
+    } else {
+      entry.expansionController.collapse();
+    }
+    notifyListeners();
+  }
 }
 
 mixin MenuWidgetMixin<T extends StatefulWidget> on State<T> {
@@ -326,13 +353,14 @@ mixin MenuWidgetMixin<T extends StatefulWidget> on State<T> {
     }
     return MenuExpansionSection(
       title: item.title,
+      header: item.header,
       icon: item.icon ?? Icons.menu,
       isExpanded: item.expanded,
       controller: item.expansionController,
       enabled: item.enabled,
       onExpansionChanged: (expanded) {
         if (!item.enabled) return;
-        setState(() => item.expanded = expanded);
+        menuController.updateExpandedState(item.label, expanded);
       },
       content: item.content,
     );
@@ -492,3 +520,53 @@ class _MenuWidgetState extends State<MenuWidget>
 }
 
 class MenuIds {}
+
+class MiniIconButton extends StatefulWidget {
+  final IconData icon;
+  final IconData? hoverIcon;
+  final double size;
+  final VoidCallback onPressed;
+  final Color? normalColor;
+  final Color? hoverColor;
+
+  const MiniIconButton({
+    super.key,
+    required this.icon,
+    this.hoverIcon,
+    required this.size,
+    required this.onPressed,
+    this.normalColor,
+    this.hoverColor,
+  });
+
+  @override
+  State<MiniIconButton> createState() => _MiniIconButtonState();
+}
+
+class _MiniIconButtonState extends State<MiniIconButton> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: widget.size,
+      height: widget.size,
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: GestureDetector(
+          onTap: widget.onPressed,
+          child: Icon(
+            _isHovered && widget.hoverIcon != null
+                ? widget.hoverIcon!
+                : widget.icon,
+            size: widget.size,
+            color: _isHovered
+                ? (widget.hoverColor ?? Colors.yellow)
+                : (widget.normalColor ?? Colors.blueGrey.shade700),
+          ),
+        ),
+      ),
+    );
+  }
+}
